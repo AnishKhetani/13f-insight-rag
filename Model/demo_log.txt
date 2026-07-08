@@ -1,0 +1,346 @@
+========================================================================
+  13F-INSIGHT RAG PIPELINE — DEMO LOG
+========================================================================
+
+Generated  : 2026-04-10 16:52:18
+Generator  : gemini-3.1-flash-lite-preview (via Google AI Studio)
+Evaluator  : gpt-4o-mini (via GitHub Models / OpenAI)
+Judge      : gemini-2.5-pro (via Google AI Studio / Google DeepMind)
+Embedding  : sentence-transformers/all-MiniLM-L6-v2
+Retrieval  : Hybrid BM25+Vector + FlashrankRerank
+Chain      : Routed Stuff / Map-Reduce
+Filters    : entity-scoped + temporal (period_of_report) + fund diversity
+Queries    : 3
+
+Architecture: EnsembleRetriever (BM25 + Vector) → FlashrankRerank → Stuff/Map-Reduce
+
+Each log entry contains:
+  [SAMPLE INPUT]          — User query with routing metadata
+  [SYSTEM OUTPUT]         — Baseline vs Enhanced side-by-side with dual-judge scores
+  [RETRIEVED SOURCES]     — Chunks used with accession numbers
+  [TECHNICAL COMMENTARY]  — Retrieval Strategy, Grounding Proof,
+                            Private Data Gap, Synthesis Quality
+
+========================================================================
+========================================================================
+  Q1 — Temporal Evolution
+========================================================================
+
+[SAMPLE INPUT]
+  Query : Analyze the evolution of Nvidia (NVDA) holdings across the four reported quarters of 2025.
+  Type  : Comparative / Deep Context
+  Chain : Map-Reduce  |  Retrieval: Hybrid BM25+Vector + FlashrankRerank
+
+[SYSTEM OUTPUT]
+
+  ┌─ BASELINE (Vanilla LLM — gemini-3.1-flash-lite-preview, no context)
+  │
+  │  As a financial analyst, I must first clarify a critical regulatory distinction regarding SEC
+  │  13F-HR filings: **The 2025 calendar year has not yet concluded, and therefore, four quarters
+  │  of 2025 data do not exist.**  13F filings are submitted by institutional investment managers
+  │  with at least $100 million in qualifying assets. These filings are submitted on a quarterly
+  │  basis, 45 days after the end of each calendar quarter.   As of today, the most recent
+  │  completed filing period is **Q3 2024** (period ending September 30, 2024). The filings for Q4
+  │  2024 are due in mid-February 2025. Consequently, there is no data available for any quarter of
+  │  2025.  ### Current Status of NVDA Institutional Data: *   **Q1 2025:** Data will not be
+  │  available until mid-May 2025. *   **Q2 2025:** Data will not be available until mid-August
+  │  2025. *   **Q3 2025:** Data will not be available until mid-November 2025. *   **Q4 2025:**
+  │  Data will not be available until mid-February 2026.  ### Analytical Context (2024 Trends) If
+  │  you are looking to analyze the "evolution" of institutional sentiment toward Nvidia, you must
+  │  look at the filings from **2024**. Based on the filings submitted throughout 2024, the
+  │  following trends were observed:  1.  **Q1 2024 (Period ending March 31):** Institutional
+  │  interest remained high as NVDA continued its post-earnings rally from late 2023. Many large-
+  │  cap growth funds increased their positions to maintain weightings as the stock price
+  │  appreciated. 2.  **Q2 2024 (Period ending June 30):** This period saw significant volatility
+  │  and the lead-up to the 10-for-1 stock split (effective June 7). Filings showed a mix of
+  │  "trimming" by some long-term holders taking profits after the massive run-up, balanced by
+  │  continued accumulation from AI-focused ETFs and institutional index funds. 3.  **Q3 2024
+  │  (Period ending September 30):** Filings indicated that while some institutional managers
+  │  reduced exposure due to valuation concerns, NVDA remained a top-tier holding for major asset
+  │  managers (such as Vanguard, BlackRock, and State Street), who are largely mandated to hold the
+  │  stock due to its massive weighting in the S&P 500 and Nasdaq 100.  **Recommendation:** If you
+  │  would like an analysis of the institutional movement for the **2024 calendar year** (Q1
+  │  through Q3), please let me know, and I can provide a summary of the aggregate buying and
+  │  selling trends reported in those specific filings. Otherwise, you will need to wait until the
+  │  2025 filing deadlines pass to perform this analysis for the upcoming year.
+  │
+  │  Score: 1.5/5  [Evaluator (gpt-4o-mini): 2/5 | Judge (gemini-2.5-pro): 1/5]
+  │  Grounding: Refusal/empty answer — grounding indeterminate (no CUSIPs to verify).
+  └────────────────────────────────────────────────────────────────────
+
+  ┌─ ENHANCED (Temporal RAG — Map-Reduce chain)
+  │
+  │  Based on the provided 13F filing excerpts, the following analysis details the holdings of
+  │  Nvidia (NVDA) across the available reporting periods in 2025.  ### Requested Funds Unavailable
+  │  The following funds were requested for analysis but contained no holdings data for Nvidia
+  │  (NVDA) in the provided excerpts: *   **Treasurer of the State of North Carolina** (Accession
+  │  Numbers: 0001761054-25-000004, 0001761054-25-000010) *   **NORTHERN TRUST CORP** (Accession
+  │  Number: 0001256484-25-000024)  ---  ### Analysis of Available Data  #### 1. BNY Mellon
+  │  Investment Management (Bank of New York Mellon Corp) This fund provides data for two periods,
+  │  allowing for a comparison of holdings.  *   **Period Ending 2025-03-31 (Accession Number:
+  │  0001390777-25-000071):**     The fund reported multiple positions in NVIDIA CORP (CUSIP:
+  │  67066G104) with the following share counts (`sshPrnamt`): 26,905; 4,362,490; 3,244,252;
+  │  12,354; 75,774,092; 12,688; 622,052; and 1,655,615.  *   **Period Ending 2025-06-30 (Accession
+  │  Number: 0001390777-25-000119):**     The fund reported the following share counts for NVIDIA
+  │  CORP (CUSIP: 67066G104): 350,797; 89,134; 50,047; 594,880; 30,037; 2,623,825; 70,315; and 477.
+  │  **Trend Analysis:** Comparing the two periods, there is a significant reduction in the
+  │  aggregate share count held by BNY Mellon Investment Management. The largest single position
+  │  held in the first quarter (75,774,092 shares) is not present in the second quarter, and the
+  │  total share counts across the reported lines show a marked decrease by the period ending
+  │  2025-06-30.  #### 2. SANDERS MORRIS HARRIS LLC *   **Period Ending 2025-06-30 (Accession
+  │  Number: 0001085146-25-004316):**     The fund reported two positions in NVIDIA CORPORATION
+  │  (CUSIP: 67066G104):     *   Value: 315,980; Shares: 2,000     *   Value: 4,779,355; Shares:
+  │  30,251  #### 3. VANGUARD GROUP INC *   **Period Ending 2025-09-30 (Accession Number:
+  │  0000102909-25-000353):**     The fund reported three positions in NVIDIA CORPORATION (CUSIP:
+  │  67066G104):     *   Value: 7,052,366,699; Shares: 37,798,085     *   Value: 9,838,756,337;
+  │  Shares: 52,732,106     *   Value: 11,265,327; Shares: 60,378  ---  ### Summary of Evolution
+  │  Data for the four quarters of 2025 is incomplete. Only **BNY Mellon Investment Management**
+  │  provided data for two consecutive quarters (Q1 and Q2), which indicates a contraction in their
+  │  reported Nvidia holdings. **SANDERS MORRIS HARRIS LLC** and **VANGUARD GROUP INC** provided
+  │  data for only one period each (Q2 and Q3, respectively), preventing a multi-quarter trend
+  │  analysis for those specific entities. No data was available for Q4 2025 across any of the
+  │  provided excerpts.
+  │
+  │  Score: 3.5/5  (Δ +2.0)  [Evaluator (gpt-4o-mini): 4/5 | Judge (gemini-2.5-pro): 3/5]
+  │  Grounding: PASSED — Verified CUSIPs: ['67066G104']
+  └────────────────────────────────────────────────────────────────────
+
+[RETRIEVED SOURCES] (7 chunks via Hybrid BM25+Vector + FlashrankRerank)
+  [1] Treasurer of the State of North Carolina
+      Period: 2025-03-31  |  Accession: 0001761054-25-000004  |  Filed: 2025-05-15  Rerank: 0.996
+  [2] Treasurer of the State of North Carolina
+      Period: 2025-09-30  |  Accession: 0001761054-25-000010  |  Filed: 2025-11-13  Rerank: 0.9951
+  [3] BNY Mellon Investment Management
+      Period: 2025-03-31  |  Accession: 0001390777-25-000071  |  Filed: 2025-04-29  Rerank: 0.9878
+  [4] BNY Mellon Investment Management
+      Period: 2025-06-30  |  Accession: 0001390777-25-000119  |  Filed: 2025-08-05  Rerank: 0.9876
+  [5] Sanders Morris Harris LLC
+      Period: 2025-06-30  |  Accession: 0001085146-25-004316  |  Filed: 2025-07-30  Rerank: 0.9814
+  [6] Morgan Stanley
+      Period: 2025-09-30  |  Accession: 0000102909-25-000353  |  Filed: 2025-11-07  Rerank: 0.9627
+  [7] Northern Trust Corp
+      Period: 2025-03-31  |  Accession: 0001256484-25-000024  |  Filed: 2025-05-13  Rerank: 0.9114
+
+[TECHNICAL COMMENTARY]
+
+  1. Retrieval Strategy:
+     Hybrid search (BM25 lexical + cosine-similarity vector) retrieved initial candidates. BM25
+     resolved keyword matches (e.g. ticker names, fund names) while the vector arm captured semantic
+     intent. FlashrankRerank (wide (top_n=20)) re-scored candidates by cross-encoder relevance,
+     promoting the most query-aligned chunks. Temporal filter isolated period(s) 2025-03-31,
+     2025-06-30, 2025-09-30, preventing cross-quarter bleeding. Fund-diversity filter ensured
+     representation across 5 funds. Final context: 7 chunk(s) from BNY Mellon Investment Management,
+     Morgan Stanley, Northern Trust Corp, Sanders Morris Harris LLC, Treasurer of the State of North
+     Carolina routed through the Map-Reduce synthesis chain.
+
+  2. Grounding Proof:
+     Accession Numbers cited: 0000102909-25-000353, 0001085146-25-004316, 0001256484-25-000024,
+     0001390777-25-000071, 0001390777-25-000119, 0001761054-25-000004. CUSIP grounding check:
+     PASSED. Verified CUSIPs: ['67066G104'] Period(s) of report in evidence: 2025-03-31, 2025-06-30,
+     2025-09-30.
+
+  3. Private Data Gap:
+     The vanilla LLM's training data does not include 2025-2026 13F-HR filings. The RAG pipeline
+     bridged this 'Private Data Gap' by retrieving 7 chunk(s) from BNY Mellon Investment Management,
+     Morgan Stanley, Northern Trust Corp, Sanders Morris Harris LLC, Treasurer of the State of North
+     Carolina, injecting actual SEC filing tables into the prompt so the generator could cite exact
+     share counts, CUSIPs, and market values.
+
+  4. Synthesis Quality:
+     Map-Reduce chain processed 7 chunks across 5 distinct fund(s). Each Map call extracted holdings
+     data verbatim; the Reduce step consolidated cross-fund/cross-quarter evidence into a unified
+     analytical response.
+
+------------------------------------------------------------------------
+
+========================================================================
+  Q2 — Precision Extraction
+========================================================================
+
+[SAMPLE INPUT]
+  Query : Identify the top three high-conviction healthcare positions for Pershing Square in the February 2026 filings with CUSIPs.
+  Type  : Numerical Extraction from Table
+  Chain : Stuff  |  Retrieval: Hybrid BM25+Vector + FlashrankRerank
+
+[SYSTEM OUTPUT]
+
+  ┌─ BASELINE (Vanilla LLM — gemini-3.1-flash-lite-preview, no context)
+  │
+  │  As of today, February 2026, I cannot provide the specific data requested because **the
+  │  February 2026 13F-HR filings have not yet been released.**  13F filings are submitted to the
+  │  SEC within 45 days after the end of each calendar quarter. Therefore, the filings covering the
+  │  period ending December 31, 2025, are typically released in mid-February 2026.   If you are
+  │  looking for the most recent available data, please note that as of the last completed filing
+  │  period (Q3 2025), Pershing Square Capital Management’s portfolio composition is a matter of
+  │  public record via the SEC’s EDGAR database. However, I do not have access to real-time, post-
+  │  filing data for the current month of February 2026.   Once the filings are officially
+  │  published on the SEC website, you can verify the specific CUSIPs and position sizes by
+  │  searching for "Pershing Square Capital Management, L.P." on the [SEC EDGAR Company
+  │  Search](https://www.sec.gov/edgar/searchedgar/companysearch).
+  │
+  │  Score: 1.0/5  [Evaluator (gpt-4o-mini): 1/5 | Judge (gemini-2.5-pro): 1/5]
+  │  Grounding: No specific CUSIPs to verify (narrative answer).
+  └────────────────────────────────────────────────────────────────────
+
+  ┌─ ENHANCED (Temporal RAG — Stuff chain)
+  │
+  │  Based on the provided filing data, there are no healthcare positions listed for the fund
+  │  "Pershing Square Capital Management, L.P." (Filing Date: 2026-02-17; Accession Number:
+  │  0001172661-26-001091).  The holdings for this fund are as follows: *   **ALPHABET INC**
+  │  (CUSIP: 02079K305, 02079K107) *   **AMAZON COM INC** (CUSIP: 023135106) *   **BROOKFIELD
+  │  CORP** (CUSIP: 11271J107) *   **HERTZ GLOBAL HLDGS INC** (CUSIP: 42806J700) *   **HILTON
+  │  WORLDWIDE HLDGS INC** (CUSIP: 43300A203) *   **HOWARD HUGHES HOLDINGS INC** (CUSIP: 44267T102)
+  │  *   **META PLATFORMS INC** (CUSIP: 30303M102) *   **RESTAURANT BRANDS INTL INC** (CUSIP:
+  │  76131D103) *   **SEAPORT ENTMT GROUP INC** (CUSIP: 812215200) *   **UBER TECHNOLOGIES INC**
+  │  (CUSIP: 90353T100)  This information is not present in the retrieved filing data for the
+  │  requested fund.
+  │
+  │  Score: 3.5/5  (Δ +2.5)  [Evaluator (gpt-4o-mini): 5/5 | Judge (gemini-2.5-pro): 2/5]
+  │  Grounding: PASSED — Verified CUSIPs: ['02079K107', '30303M102', '023135106', '42806J700', '76131D103', '11271J107', '44267T102', '90353T100', '43300A203', '812215200', '02079K305']
+  └────────────────────────────────────────────────────────────────────
+
+[RETRIEVED SOURCES] (5 chunks via Hybrid BM25+Vector + FlashrankRerank)
+  [1] Fidelity Management & Research (FMR)
+      Period: 2025-12-31  |  Accession: 0001172661-26-001091  |  Filed: 2026-02-17  Rerank: 0.997
+  [2] Goldman Sachs Group
+      Period: 2025-12-31  |  Accession: 0000895421-26-000080  |  Filed: 2026-02-13  Rerank: 0.9891
+  [3] UBS Group AG
+      Period: 2025-12-31  |  Accession: 0000886982-26-000052  |  Filed: 2026-02-10  Rerank: 0.9701
+  [4] Treasurer of the State of North Carolina
+      Period: 2025-12-31  |  Accession: 0001761054-26-000002  |  Filed: 2026-02-13  Rerank: 0.962
+  [5] Goldman Sachs Group
+      Period: 2025-12-31  |  Accession: 0000895421-26-000080  |  Filed: 2026-02-13  Rerank: 0.9564
+
+[TECHNICAL COMMENTARY]
+
+  1. Retrieval Strategy:
+     Hybrid search (BM25 lexical + cosine-similarity vector) retrieved initial candidates. BM25
+     resolved keyword matches (e.g. ticker names, fund names) while the vector arm captured semantic
+     intent. FlashrankRerank (wide (top_n=20)) re-scored candidates by cross-encoder relevance,
+     promoting the most query-aligned chunks. Temporal filter isolated period(s) 2025-12-31,
+     preventing cross-quarter bleeding. Fund-diversity filter ensured representation across 4 funds.
+     Final context: 5 chunk(s) from Fidelity Management & Research (FMR), Goldman Sachs Group,
+     Treasurer of the State of North Carolina, UBS Group AG routed through the Stuff synthesis
+     chain.
+
+  2. Grounding Proof:
+     Accession Numbers cited: 0000886982-26-000052, 0000895421-26-000080, 0001172661-26-001091,
+     0001761054-26-000002. CUSIP grounding check: PASSED. Verified CUSIPs: ['02079K107',
+     '30303M102', '023135106', '42806J700', '76131D103', '11271J107', '44267T102', '90353T100',
+     '43300A203', '812215200', '02079K305'] Period(s) of report in evidence: 2025-12-31.
+
+  3. Private Data Gap:
+     The vanilla LLM's training data does not include 2025-2026 13F-HR filings. The RAG pipeline
+     bridged this 'Private Data Gap' by retrieving 5 chunk(s) from Fidelity Management & Research
+     (FMR), Goldman Sachs Group, Treasurer of the State of North Carolina, UBS Group AG, injecting
+     actual SEC filing tables into the prompt so the generator could cite exact share counts,
+     CUSIPs, and market values.
+
+  4. Synthesis Quality:
+     Stuff chain concatenated 5 chunk(s) from 4 fund(s) into a single prompt — sufficient for this
+     focused extraction query.
+
+------------------------------------------------------------------------
+
+========================================================================
+  Q3 — Cross-Fund Synthesis
+========================================================================
+
+[SAMPLE INPUT]
+  Query : Compare 'AI Infrastructure' conviction between Berkshire Hathaway and Scion Asset Management in Q4 2025.
+  Type  : Comparative / Deep Context
+  Chain : Map-Reduce  |  Retrieval: Hybrid BM25+Vector + FlashrankRerank
+
+[SYSTEM OUTPUT]
+
+  ┌─ BASELINE (Vanilla LLM — gemini-3.1-flash-lite-preview, no context)
+  │
+  │  As of today, **Q4 2025 filings have not yet occurred**, as we are currently in the 2024
+  │  calendar year. Therefore, it is impossible to provide a comparison of 13F-HR filings for that
+  │  period.  Furthermore, even if we were to look at the most recent historical data (Q4 2023 or
+  │  Q1 2024), please note the following regarding these two specific entities:  1.  **Berkshire
+  │  Hathaway:** Berkshire Hathaway’s investment strategy, directed by Warren Buffett and his team,
+  │  is historically focused on value investing, insurance, and consumer staples. While they hold a
+  │  massive position in Apple (which has AI integration), they have historically avoided direct
+  │  "AI Infrastructure" pure-plays (such as Nvidia, AMD, or specialized data center REITs). Their
+  │  filings generally reflect a preference for companies with established "moats" rather than
+  │  speculative infrastructure plays. 2.  **Scion Asset Management:** Michael Burry’s firm is
+  │  known for highly concentrated, often contrarian, and short-term tactical positions. Their 13F
+  │  filings are frequently volatile, and they have historically rotated in and out of
+  │  semiconductor and tech-adjacent stocks.  **Data Limitation:** Because Q4 2025 is in the
+  │  future, no data exists. If you intended to ask about a past quarter (e.g., Q4 2023), please
+  │  specify the date, and I can provide an analysis of their reported holdings at that time.
+  │
+  │  Score: 3.5/5  [Evaluator (gpt-4o-mini): 4/5 | Judge (gemini-2.5-pro): 3/5]
+  │  Grounding: Refusal/empty answer — grounding indeterminate (no CUSIPs to verify).
+  └────────────────────────────────────────────────────────────────────
+
+  ┌─ ENHANCED (Temporal RAG — Map-Reduce chain)
+  │
+  │  Regarding your request for a comparison of "AI Infrastructure" conviction between Berkshire
+  │  Hathaway and Scion Asset Management in Q4 2025:  **Unavailable Data:** *   **Berkshire
+  │  Hathaway:** No data was provided for this fund in any of the retrieved excerpts. *   **Q4
+  │  2025:** No data was provided for the period ending 2025-12-31. The latest available report for
+  │  Scion Asset Management is for the period ending 2025-09-30 (Q3 2025).  **Analysis of Scion
+  │  Asset Management (Accession Number: 0001649339-25-000007, Filing Date: 2025-11-03, Period of
+  │  Report: 2025-09-30):** As of the most recent filing (Q3 2025), Scion Asset Management held the
+  │  following positions in companies often associated with AI infrastructure:  *   **NVIDIA
+  │  CORPORATION (CUSIP: 67066G104):** 1,000,000 shares valued at 186,580,000. *   **PALANTIR
+  │  TECHNOLOGIES INC (CUSIP: 69608A108):** 5,000,000 shares valued at 912,100,000.  **Trend
+  │  Analysis for NVIDIA CORPORATION (Scion Asset Management):** Comparing the available data
+  │  across the provided periods for NVIDIA CORPORATION:  *   **Period ending 2025-03-31 (Accession
+  │  Number: 0001879202-25-000025):** Scion Asset Management held 900,000 shares valued at
+  │  97,542,000. *   **Period ending 2025-09-30 (Accession Number: 0001649339-25-000007):** Scion
+  │  Asset Management held 1,000,000 shares valued at 186,580,000.  **Conclusion:** Between Q1 2025
+  │  and Q3 2025, Scion Asset Management increased its position in NVIDIA CORPORATION from 900,000
+  │  shares to 1,000,000 shares, and the reported value of this holding grew from 97,542,000 to
+  │  186,580,000. No data is available to perform a comparison with Berkshire Hathaway or to assess
+  │  holdings for Q4 2025.
+  │
+  │  Score: 3.5/5  (Δ +0.0)  [Evaluator (gpt-4o-mini): 4/5 | Judge (gemini-2.5-pro): 3/5]
+  │  Grounding: PASSED — Verified CUSIPs: ['67066G104', '69608A108']
+  └────────────────────────────────────────────────────────────────────
+
+[RETRIEVED SOURCES] (1 chunks via Hybrid BM25+Vector + FlashrankRerank)
+  [1] Scion Asset Management (Michael Burry)
+      Period: 2025-09-30  |  Accession: 0001649339-25-000007  |  Filed: 2025-11-03  Rerank: 0.9962
+
+[TECHNICAL COMMENTARY]
+
+  1. Retrieval Strategy:
+     Hybrid search (BM25 lexical + cosine-similarity vector) retrieved initial candidates. BM25
+     resolved keyword matches (e.g. ticker names, fund names) while the vector arm captured semantic
+     intent. FlashrankRerank (narrow (top_n=8)) re-scored candidates by cross-encoder relevance,
+     promoting the most query-aligned chunks. Entity filter scoped results to: ['Berkshire Hathaway
+     Inc (Warren Buffett)', 'Scion Asset Management (Michael Burry)']. Temporal filter isolated
+     period(s) 2025-09-30, preventing cross-quarter bleeding. Final context: 1 chunk(s) from Scion
+     Asset Management (Michael Burry) routed through the Map-Reduce synthesis chain.
+
+  2. Grounding Proof:
+     Accession Numbers cited: 0001649339-25-000007. CUSIP grounding check: PASSED. Verified CUSIPs:
+     ['67066G104', '69608A108'] Period(s) of report in evidence: 2025-09-30.
+
+  3. Private Data Gap:
+     The vanilla LLM's training data does not include 2025-2026 13F-HR filings. The RAG pipeline
+     bridged this 'Private Data Gap' by retrieving 1 chunk(s) from Scion Asset Management (Michael
+     Burry), injecting actual SEC filing tables into the prompt so the generator could cite exact
+     share counts, CUSIPs, and market values.
+
+  4. Synthesis Quality:
+     Map-Reduce chain processed 1 chunks across 1 distinct fund(s). Each Map call extracted holdings
+     data verbatim; the Reduce step consolidated cross-fund/cross-quarter evidence into a unified
+     analytical response.
+
+------------------------------------------------------------------------
+
+
+                            SCORING SUMMARY                             
+------------------------------------------------------------------------
+  Query  Theme                     Baseline Enhanced   Delta   Grounded
+  ────── ───────────────────────── ──────── ──────── ─────── ──────────
+  Q1     Temporal Evolution            1.5/5     3.5/5   +2.0        YES
+  Q2     Precision Extraction          1.0/5     3.5/5   +2.5        YES
+  Q3     Cross-Fund Synthesis          3.5/5     3.5/5   +0.0        YES
+  ────── ───────────────────────── ──────── ──────── ───────
+  AVG                                  2.0/5     3.5/5   +1.5
+------------------------------------------------------------------------

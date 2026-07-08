@@ -1,0 +1,5 @@
+# Rename this file to `github_token.txt` and replace the line below with your token.
+# Create a GitHub personal access token (used for GPT-4o-mini via GitHub Models):
+# https://github.com/settings/tokens  — a fine-grained token with default read scope is enough.
+# One token per file, no quotes, no trailing spaces. Never commit the real file.
+PASTE_YOUR_GITHUB_TOKEN_HERE

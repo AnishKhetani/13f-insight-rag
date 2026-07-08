@@ -1,0 +1,18 @@
+# ── Generated data & indexes (regenerate via Stage 1 / Stage 3 notebooks) ──
+Model/data/
+Model/vector_db/
+
+# ── Secrets (use the *.example.txt templates instead) ──
+Model/gemini_api_key.txt
+Model/github_token.txt
+*.token
+
+# ── Python / Jupyter cruft ──
+.ipynb_checkpoints/
+__pycache__/
+
+# ── Archives & local submission artifacts ──
+*.zip
+Essay.docx
+u2139004_*.*
+Plan.rtf
