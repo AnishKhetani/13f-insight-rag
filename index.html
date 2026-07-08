@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13F-INSIGHT — RAG pipeline for SEC 13F filing analysis</title>
+<meta name="description" content="A retrieval-augmented (RAG) pipeline that answers questions about SEC 13F institutional holdings, grounded in the actual filings. Hybrid BM25 + vector search, cross-encoder reranking, and dual-LLM-judge evaluation — beats a vanilla LLM 1.75 to 4.45 out of 5 on faithfulness.">
+<meta name="keywords" content="RAG, retrieval-augmented generation, SEC 13F, SEC EDGAR, LLM, LangChain, ChromaDB, hybrid search, BM25, reranking, financial NLP, vector database, question answering, Gemini, embeddings">
+<meta name="author" content="Anish Khetani">
+<link rel="canonical" href="https://anishkhetani.github.io/13f-insight-rag/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://anishkhetani.github.io/13f-insight-rag/">
+<meta property="og:title" content="13F-INSIGHT — RAG pipeline for SEC 13F filing analysis">
+<meta property="og:description" content="Retrieval-augmented Q&A over SEC 13F institutional holdings, grounded in source filings with CUSIP-level provenance. Baseline 1.75/5 → enhanced 4.45/5 on faithfulness.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="13F-INSIGHT — RAG pipeline for SEC 13F filing analysis">
+<meta name="twitter:description" content="Retrieval-augmented Q&A over SEC 13F institutional holdings, grounded in source filings. Baseline 1.75/5 → enhanced 4.45/5.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#ffffff; --bg-soft:#f6f8fb; --bg-card:#ffffff; --border:#e4e9f0;
+    --ink:#0f1b2d; --muted:#5b6b82; --faint:#8896a8;
+    --accent:#0d9488; --accent-ink:#0b7d73; --accent-soft:#e6f4f2;
+    --warn:#c2410c; --warn-soft:#fdece3;
+    --good:#0d9488; --good-soft:#e6f4f2;
+    --code-bg:#f1f5f9; --shadow:0 1px 2px rgba(16,27,45,.06),0 8px 28px rgba(16,27,45,.06);
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0a0f1a; --bg-soft:#0e1626; --bg-card:#111b2e; --border:#1e2b42;
+      --ink:#e8eef6; --muted:#9fb0c6; --faint:#6d7f97;
+      --accent:#2dd4bf; --accent-ink:#5eead4; --accent-soft:#0c2b29;
+      --warn:#fb923c; --warn-soft:#2a1a12;
+      --good:#2dd4bf; --good-soft:#0c2b29;
+      --code-bg:#0c1524; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0a0f1a; --bg-soft:#0e1626; --bg-card:#111b2e; --border:#1e2b42;
+    --ink:#e8eef6; --muted:#9fb0c6; --faint:#6d7f97;
+    --accent:#2dd4bf; --accent-ink:#5eead4; --accent-soft:#0c2b29;
+    --warn:#fb923c; --warn-soft:#2a1a12; --good:#2dd4bf; --good-soft:#0c2b29;
+    --code-bg:#0c1524; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"]{
+    --bg:#ffffff; --bg-soft:#f6f8fb; --bg-card:#ffffff; --border:#e4e9f0;
+    --ink:#0f1b2d; --muted:#5b6b82; --faint:#8896a8;
+    --accent:#0d9488; --accent-ink:#0b7d73; --accent-soft:#e6f4f2;
+    --warn:#c2410c; --warn-soft:#fdece3; --good:#0d9488; --good-soft:#e6f4f2;
+    --code-bg:#f1f5f9; --shadow:0 1px 2px rgba(16,27,45,.06),0 8px 28px rgba(16,27,45,.06);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+    -webkit-font-smoothing:antialiased;font-size:17px}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+  a{color:var(--accent-ink);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,.mono{font-family:var(--mono);font-size:.86em}
+  h1,h2,h3{line-height:1.2;letter-spacing:-.02em;margin:0}
+  section{padding:64px 0;border-top:1px solid var(--border)}
+  .eyebrow{font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:14px}
+  .lead{color:var(--muted);font-size:1.06rem;max-width:64ch}
+
+  /* nav */
+  .nav{position:sticky;top:0;z-index:20;backdrop-filter:saturate(150%) blur(10px);
+    background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--border)}
+  .nav .wrap{display:flex;align-items:center;gap:16px;height:58px}
+  .brand{font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
+  .brand .dot{color:var(--accent)}
+  .nav .spacer{flex:1}
+  .nav a.navlink{color:var(--muted);font-size:.92rem;font-weight:600}
+  .nav a.navlink:hover{color:var(--ink);text-decoration:none}
+  .hide-sm{display:inline}
+  .themebtn{cursor:pointer;border:1px solid var(--border);background:var(--bg-card);color:var(--muted);
+    width:34px;height:34px;border-radius:9px;font-size:15px;display:grid;place-items:center}
+  .themebtn:hover{color:var(--ink)}
+
+  /* hero */
+  .hero{padding:78px 0 60px;border-top:none}
+  .hero h1{font-size:clamp(2.1rem,5.4vw,3.5rem);font-weight:830}
+  .hero .tag{color:var(--accent-ink)}
+  .hero p.pitch{font-size:1.18rem;color:var(--muted);max-width:60ch;margin:20px 0 0}
+  .btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:11px;font-weight:650;font-size:.96rem;border:1px solid var(--border)}
+  .btn.primary{background:var(--accent);color:#04211e;border-color:transparent}
+  .btn.primary:hover{filter:brightness(1.05);text-decoration:none}
+  .btn.ghost{background:var(--bg-card);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--accent);text-decoration:none}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px}
+  .chip{font-size:.83rem;font-weight:600;color:var(--muted);background:var(--bg-soft);
+    border:1px solid var(--border);border-radius:999px;padding:6px 13px}
+  .chip b{color:var(--accent-ink)}
+
+  /* demo cards */
+  .demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:26px}
+  .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+  .card .role{display:flex;align-items:center;gap:9px;font-weight:750;font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
+  .pill{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:999px}
+  .pill.bad{background:var(--warn-soft);color:var(--warn)}
+  .pill.good{background:var(--good-soft);color:var(--good)}
+  .card blockquote{margin:0;font-size:.95rem;color:var(--ink)}
+  .card .say{color:var(--muted);font-style:italic;border-left:3px solid var(--border);padding-left:13px;margin:0 0 12px}
+  .card.enh .say{border-left-color:var(--accent)}
+  .verdict{font-size:.86rem;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)}
+  .verdict b{color:var(--ink)}
+  .kbd{font-family:var(--mono);font-size:.82em;background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:1px 6px}
+  .query-line{background:var(--bg-soft);border:1px solid var(--border);border-radius:12px;padding:14px 18px;font-size:1.02rem}
+  .query-line b{color:var(--accent-ink)}
+
+  /* architecture */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:26px}
+  .stage{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);position:relative}
+  .stage h3{font-size:1rem;display:flex;align-items:center;gap:8px}
+  .stage .n{font-family:var(--mono);font-size:.72rem;color:#04211e;background:var(--accent);border-radius:7px;padding:2px 7px;font-weight:700}
+  .stage ul{margin:12px 0 0;padding-left:18px;color:var(--muted);font-size:.88rem}
+  .stage li{margin:3px 0}
+
+  /* results */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
+  .tile{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:22px;text-align:center;box-shadow:var(--shadow)}
+  .tile .big{font-size:2.5rem;font-weight:820;letter-spacing:-.03em;line-height:1}
+  .tile.base .big{color:var(--faint)}
+  .tile.enh .big{color:var(--accent-ink)}
+  .tile.delta .big{color:var(--accent)}
+  .tile .lbl{font-size:.82rem;color:var(--muted);margin-top:8px;font-weight:600}
+  .chart{margin-top:30px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:24px 22px 16px;box-shadow:var(--shadow)}
+  .chart .legend{display:flex;gap:18px;justify-content:center;font-size:.82rem;color:var(--muted);margin-bottom:20px;flex-wrap:wrap}
+  .chart .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block}
+  .sw.b{background:var(--faint)} .sw.e{background:var(--accent)}
+  .bars{display:flex;align-items:flex-end;gap:min(2.2vw,20px);height:210px;padding:0 4px;border-bottom:1px solid var(--border)}
+  .grp{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:4px;height:100%}
+  .bar{width:46%;max-width:20px;border-radius:4px 4px 0 0;position:relative}
+  .bar.b{background:var(--faint)} .bar.e{background:var(--accent)}
+  .bar span{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:.68rem;color:var(--muted);font-family:var(--mono)}
+  .xlabels{display:flex;gap:min(2.2vw,20px);padding:8px 4px 0}
+  .xlabels div{flex:1;text-align:center;font-size:.72rem;color:var(--faint);font-family:var(--mono)}
+  .note{font-size:.85rem;color:var(--muted);margin-top:14px}
+
+  /* stages + techniques tables */
+  .tbl-scroll{overflow-x:auto;margin-top:22px;border:1px solid var(--border);border-radius:14px}
+  table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:520px}
+  th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{background:var(--bg-soft);font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  tr:last-child td{border-bottom:none}
+  td .mono{color:var(--accent-ink)}
+  .tech{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
+  .tech .t{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:16px 18px}
+  .tech .t b{display:block;margin-bottom:3px}
+  .tech .t span{color:var(--muted);font-size:.9rem}
+
+  footer{border-top:1px solid var(--border);padding:44px 0 60px;color:var(--muted);font-size:.9rem}
+  footer .cols{display:flex;flex-wrap:wrap;gap:26px;justify-content:space-between}
+  footer a{color:var(--muted)} footer a:hover{color:var(--ink)}
+  .disc{margin-top:22px;font-size:.82rem;color:var(--faint);max-width:75ch}
+
+  @media (max-width:820px){
+    .flow{grid-template-columns:1fr 1fr}
+    .tech{grid-template-columns:1fr}
+  }
+  @media (max-width:620px){
+    body{font-size:16px}
+    .demo-grid{grid-template-columns:1fr}
+    .tiles{grid-template-columns:1fr}
+    .flow{grid-template-columns:1fr}
+    .hide-sm{display:none}
+    section{padding:52px 0}
+    .bar span{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <span class="brand">📊 13F<span class="dot">·</span>INSIGHT</span>
+    <span class="spacer"></span>
+    <a class="navlink hide-sm" href="#demo">Demo</a>
+    <a class="navlink hide-sm" href="#architecture">Architecture</a>
+    <a class="navlink hide-sm" href="#results">Results</a>
+    <a class="navlink" href="https://github.com/AnishKhetani/13f-insight-rag">GitHub ↗</a>
+    <button class="themebtn" id="themebtn" title="Toggle theme" aria-label="Toggle light/dark theme">◐</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Retrieval-Augmented Generation · Financial NLP</div>
+    <h1>Ask questions about <span class="tag">SEC 13F filings</span> — and trust the answer.</h1>
+    <p class="pitch">A RAG pipeline that answers questions about institutional-investor holdings grounded in the
+      <em>actual</em> filings, not the model's memory. Every claim is traceable to a specific accession number,
+      share count, and filing date.</p>
+    <div class="btns">
+      <a class="btn primary" href="https://github.com/AnishKhetani/13f-insight-rag">View on GitHub</a>
+      <a class="btn ghost" href="https://github.com/AnishKhetani/13f-insight-rag/blob/main/DESIGN_NOTES.md">Design Notes &amp; Evaluation</a>
+      <a class="btn ghost" href="#demo">See it in action</a>
+    </div>
+    <div class="chips">
+      <span class="chip"><b>100</b> institutional funds</span>
+      <span class="chip"><b>4</b> quarters of 13F-HR filings</span>
+      <span class="chip"><b>+2.70</b> faithfulness gain (of 5)</span>
+      <span class="chip"><b>6-stage</b> pipeline</span>
+    </div>
+  </div>
+</header>
+
+<section id="why">
+  <div class="wrap">
+    <div class="eyebrow">The problem</div>
+    <h2>A “Private Data Gap” a vanilla LLM can't cross.</h2>
+    <p class="lead" style="margin-top:16px">
+      Recent 13F filings land <em>after</em> a model's training cutoff, so off-the-shelf LLMs either refuse
+      or hallucinate plausible-looking share counts. For financial research, a fabricated CUSIP is worse than
+      no answer at all. 13F-INSIGHT indexes real quarterly filings, retrieves the relevant rows, and forces the
+      generator to answer <strong>only</strong> from them — then audits every response against the source corpus.
+      The result says <em>“I don't have that”</em> when it should, and cites exact figures when it can.
+    </p>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="eyebrow">See it in action</div>
+    <h2>Same question. One model. Retrieval changes everything.</h2>
+    <div class="query-line" style="margin-top:22px">
+      <b>Query:</b> “Analyze the evolution of Nvidia (NVDA) holdings across the four reported quarters of 2025.”
+    </div>
+    <div class="demo-grid">
+      <div class="card base">
+        <div class="role"><span class="pill bad">Baseline</span> vanilla LLM · no retrieval</div>
+        <p class="say">“The 2025 calendar year has not yet concluded, and therefore four quarters of 2025
+          data do not exist. […] As of today, the most recent completed filing period is <b>Q3 2024</b>.”</p>
+        <blockquote>Confidently wrong. It reasons from a stale world model — the filings exist, they're just
+          past its training cutoff — so it invents “2024 trends” to fill the gap.</blockquote>
+        <div class="verdict">Grounding: <b>indeterminate</b> (refusal, no CUSIPs) · Judge score <b>1.5/5</b></div>
+      </div>
+      <div class="card enh">
+        <div class="role"><span class="pill good">13F-INSIGHT</span> retrieval-augmented</div>
+        <p class="say">“<b>BNY Mellon Investment Management</b> reported NVIDIA CORP (CUSIP <span class="kbd">67066G104</span>):
+          period ending <b>2025-03-31</b> (Accession <span class="kbd">0001390777-25-000071</span>) … 75,774,092 shares;
+          period ending <b>2025-06-30</b> (Accession <span class="kbd">0001390777-25-000119</span>) … a marked decrease.
+          No data was available for Q4 2025.”</p>
+        <blockquote>Real share counts and real accession numbers from the actual filings — and where data is
+          genuinely missing (Q4 2025), it <em>says so</em> instead of inventing it.</blockquote>
+        <div class="verdict">Grounding: <b>PASSED</b> — CUSIP <span class="kbd">67066G104</span> verified · Judge score <b>3.5/5</b></div>
+      </div>
+    </div>
+    <p class="note">Abridged from
+      <a href="https://github.com/AnishKhetani/13f-insight-rag/blob/main/demo_log.txt">demo_log.txt</a>,
+      which carries the full side-by-side with dual-judge scores and per-chunk retrieval provenance.</p>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <h2>Four stages from filing to audited answer.</h2>
+    <div class="flow">
+      <div class="stage">
+        <h3><span class="n">01</span> Ingest</h3>
+        <ul>
+          <li>SEC EDGAR download (rate-limit safe)</li>
+          <li>XML <code>&lt;informationTable&gt;</code> parsing</li>
+          <li>Table-aware chunking w/ metadata headers</li>
+        </ul>
+      </div>
+      <div class="stage">
+        <h3><span class="n">02</span> Retrieve</h3>
+        <ul>
+          <li>ChromaDB (MiniLM) + BM25</li>
+          <li>Hybrid fusion via RRF</li>
+          <li>FlashRank cross-encoder rerank</li>
+          <li>Entity / temporal / diversity filters</li>
+        </ul>
+      </div>
+      <div class="stage">
+        <h3><span class="n">03</span> Generate</h3>
+        <ul>
+          <li>Routed Stuff / Map-Reduce chains</li>
+          <li>Verbatim-preservation prompting</li>
+          <li>Gemini 3.1 Flash-Lite</li>
+        </ul>
+      </div>
+      <div class="stage">
+        <h3><span class="n">04</span> Evaluate</h3>
+        <ul>
+          <li>Dual-judge: GPT-4o-mini + Gemini 2.5 Pro</li>
+          <li>5 MB CUSIP grounding check</li>
+          <li>Per-query audit trail w/ accessions</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap">
+    <div class="eyebrow">Results</div>
+    <h2>Retrieval more than doubled faithfulness.</h2>
+    <p class="lead" style="margin:16px 0 30px">Ten diverse queries — fact lookup, numerical extraction, comparative
+      synthesis, CUSIP lookup, hallucination traps, out-of-scope periods — scored 1–5 by two independent LLM judges
+      from different vendors.</p>
+    <div class="tiles">
+      <div class="tile base"><div class="big">1.75</div><div class="lbl">Baseline avg faithfulness / 5</div></div>
+      <div class="tile enh"><div class="big">4.45</div><div class="lbl">Enhanced avg faithfulness / 5</div></div>
+      <div class="tile delta"><div class="big">+2.70</div><div class="lbl">Improvement (7/10 grounded)</div></div>
+    </div>
+
+    <div class="chart">
+      <div class="legend">
+        <span><i class="sw b"></i> Baseline</span>
+        <span><i class="sw e"></i> Enhanced (13F-INSIGHT)</span>
+      </div>
+      <div class="bars" role="img" aria-label="Per-query faithfulness scores, baseline versus enhanced, out of 5.">
+        <div class="grp"><div class="bar b" style="height:30%"><span>1.5</span></div><div class="bar e" style="height:100%"><span>5.0</span></div></div>
+        <div class="grp"><div class="bar b" style="height:20%"><span>1.0</span></div><div class="bar e" style="height:90%"><span>4.5</span></div></div>
+        <div class="grp"><div class="bar b" style="height:30%"><span>1.5</span></div><div class="bar e" style="height:90%"><span>4.5</span></div></div>
+        <div class="grp"><div class="bar b" style="height:30%"><span>1.5</span></div><div class="bar e" style="height:60%"><span>3.0</span></div></div>
+        <div class="grp"><div class="bar b" style="height:20%"><span>1.0</span></div><div class="bar e" style="height:100%"><span>5.0</span></div></div>
+        <div class="grp"><div class="bar b" style="height:60%"><span>3.0</span></div><div class="bar e" style="height:100%"><span>5.0</span></div></div>
+        <div class="grp"><div class="bar b" style="height:60%"><span>3.0</span></div><div class="bar e" style="height:100%"><span>5.0</span></div></div>
+        <div class="grp"><div class="bar b" style="height:20%"><span>1.0</span></div><div class="bar e" style="height:100%"><span>5.0</span></div></div>
+        <div class="grp"><div class="bar b" style="height:60%"><span>3.0</span></div><div class="bar e" style="height:60%"><span>3.0</span></div></div>
+        <div class="grp"><div class="bar b" style="height:30%"><span>1.5</span></div><div class="bar e" style="height:90%"><span>4.5</span></div></div>
+      </div>
+      <div class="xlabels">
+        <div>Q01</div><div>Q02</div><div>Q03</div><div>Q04</div><div>Q05</div>
+        <div>Q06</div><div>Q07</div><div>Q08</div><div>Q09</div><div>Q10</div>
+      </div>
+      <p class="note">Q06 &amp; Q07 are the traps — a non-existent entity and an out-of-scope period. There a good
+        system should <em>refuse</em>, and the enhanced pipeline does, scoring full marks for it. The flat Q09 and the
+        Q04 grounding false-positive are dissected honestly in the
+        <a href="https://github.com/AnishKhetani/13f-insight-rag/blob/main/DESIGN_NOTES.md">design notes</a>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="pipeline">
+  <div class="wrap">
+    <div class="eyebrow">Pipeline</div>
+    <h2>Six reproducible notebook stages.</h2>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>Stage</th><th>Notebook</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><span class="mono">stage1_acquisition</span></td><td>Download up to 4 quarterly 13F-HR filings per fund for 100 CIKs from SEC EDGAR, rate-limit compliant.</td></tr>
+          <tr><td>2</td><td><span class="mono">stage2_parsing</span></td><td>Extract <code>&lt;informationTable&gt;</code> XML → DataFrames → ≤300-word Markdown table chunks with metadata headers.</td></tr>
+          <tr><td>3</td><td><span class="mono">stage3_vectordb</span></td><td>Build ChromaDB (all-MiniLM-L6-v2) + BM25 index; wire the hybrid retriever with Reciprocal Rank Fusion.</td></tr>
+          <tr><td>4</td><td><span class="mono">stage4_rag_analysis</span></td><td>Full RAG pipeline: entity/temporal/diversity filters, reranking, Stuff/Map-Reduce chains, audit-trail logging.</td></tr>
+          <tr><td>5</td><td><span class="mono">stage5_evaluation</span></td><td>10 diverse queries, baseline vs enhanced, dual-judge scoring and grounding checks.</td></tr>
+          <tr><td>6</td><td><span class="mono">stage6_demo</span></td><td>3 thematic demo queries with side-by-side output; generates the demo log.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="eyebrow" style="margin-top:44px">Techniques</div>
+    <h2>What's under the hood.</h2>
+    <div class="tech">
+      <div class="t"><b>Hybrid search + RRF</b><span>BM25 keyword precision fused with ChromaDB semantics via Reciprocal Rank Fusion.</span></div>
+      <div class="t"><b>Cross-encoder reranking</b><span>FlashRank, dual-width — narrow (top-8) for entity queries, wide (top-20) for synthesis.</span></div>
+      <div class="t"><b>Routed Map-Reduce</b><span>Verbatim Stuff chain for lookups; abstractive Map-Reduce for cross-fund synthesis.</span></div>
+      <div class="t"><b>Precision filters</b><span>Entity-scoped, temporal (period-of-report), and fund-diversity post-retrieval filters.</span></div>
+      <div class="t"><b>Cross-vendor dual judge</b><span>GPT-4o-mini (OpenAI) + Gemini 2.5 Pro (Google) — two vendors, no self-grading.</span></div>
+      <div class="t"><b>CUSIP grounding check</b><span>Scans up to 5 MB of source filings to verify every cited identifier; refusals → indeterminate.</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <div class="brand" style="margin-bottom:8px">📊 13F<span class="dot">·</span>INSIGHT</div>
+        <div>Grounded retrieval over SEC 13F institutional holdings.</div>
+      </div>
+      <div style="display:flex;gap:26px;flex-wrap:wrap">
+        <a href="https://github.com/AnishKhetani/13f-insight-rag">Repository</a>
+        <a href="https://github.com/AnishKhetani/13f-insight-rag/blob/main/DESIGN_NOTES.md">Design Notes</a>
+        <a href="https://github.com/AnishKhetani/13f-insight-rag/tree/main/Model">Notebooks</a>
+        <a href="https://github.com/AnishKhetani/13f-insight-rag/blob/main/demo_log.txt">Demo Log</a>
+      </div>
+    </div>
+    <p class="disc">Educational / portfolio project. 13F-HR filings are public-domain data published by the U.S.
+      Securities and Exchange Commission via EDGAR; this project is not affiliated with, endorsed by, or sponsored by
+      the SEC or any fund named in the dataset. Nothing here is investment advice. Released under the MIT License.</p>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    var root=document.documentElement, key="13f-theme";
+    var saved=null; try{saved=localStorage.getItem(key)}catch(e){}
+    if(saved){root.setAttribute("data-theme",saved)}
+    document.getElementById("themebtn").addEventListener("click",function(){
+      var cur=root.getAttribute("data-theme");
+      if(!cur){cur=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}
+      var next=cur==="dark"?"light":"dark";
+      root.setAttribute("data-theme",next);
+      try{localStorage.setItem(key,next)}catch(e){}
+    });
+  })();
+</script>
+</body>
+</html>
