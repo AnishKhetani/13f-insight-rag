@@ -4,6 +4,8 @@
 
 Ask "What was Berkshire Hathaway's largest position?" or "Which funds increased exposure to a given CUSIP?" and get an answer backed by specific accession numbers, share counts, and filing dates — every claim traceable to a source document.
 
+🔗 **[Project site & live before/after demo →](https://anishkhetani.github.io/13f-insight-rag/)**
+
 ---
 
 ## Why I built this
